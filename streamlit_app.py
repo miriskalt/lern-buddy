@@ -1,6 +1,88 @@
 import streamlit as st
+from replit import db
 
-st.title("🎈 My new app")
-st.write(
-    "Let's start building! For help and inspiration, head over to [docs.streamlit.io](https://docs.streamlit.io/)."
+st.set_page_config(page_title="Leni's Lernpflanze", page_icon="🌱")
+
+def load_minutes():
+    return int(db.get("minutes", 0))
+
+def save_minutes(minutes):
+    db["minutes"] = minutes
+
+# Load from database into session state on first run
+if "minutes" not in st.session_state:
+    st.session_state.minutes = load_minutes()
+
+st.title("🌱 Leni's Lernpflanze")
+st.write("Lass deine Pflanze wachsen, indem du lernst!")
+
+# Add study time
+minutes_added = st.number_input(
+    "Wie viele Minuten hast du gelernt?", min_value=1, max_value=300, value=25
 )
+
+if st.button("Ich habe gelernt!"):
+    st.session_state.minutes += minutes_added
+    save_minutes(st.session_state.minutes)
+
+total = st.session_state.minutes
+
+st.subheader(f"Gesamte Lernzeit: {total} Minuten")
+
+# Plant growth stages
+if total < 30:
+    plant = "🌱"
+    stage = "Keimling"
+elif total < 60:
+    plant = "🌿"
+    stage = "Junge Pflanze"
+elif total < 120:
+    plant = "🪴"
+    stage = "Kräftig am Wachsen"
+elif total < 300:
+    plant = "🌷"
+    stage = "Blühende Pflanze"
+else:
+    plant = "🌳"
+    stage = "Lernbaum"
+
+st.markdown(
+    f"""
+    <div style="text-align:center;font-size:120px;">
+        {plant}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.success(f"Stufe: {stage}")
+
+# Progress bar to next stage
+if total < 30:
+    progress = total / 30
+    target = 30
+elif total < 60:
+    progress = (total - 30) / 30
+    target = 60
+elif total < 120:
+    progress = (total - 60) / 60
+    target = 120
+elif total < 300:
+    progress = (total - 120) / 180
+    target = 300
+else:
+    progress = 1.0
+    target = None
+
+if target:
+    st.write(f"Nächste Wachstumsstufe bei {target} Minuten!")
+    st.progress(progress)
+else:
+    st.balloons()
+    st.write("🎉 Deine Pflanze ist zu einem mächtigen Lernbaum geworden!")
+
+# Reset button
+if st.button("Neue Pflanze starten"):
+    st.session_state.minutes = 0
+    save_minutes(0)
+    st.rerun()
